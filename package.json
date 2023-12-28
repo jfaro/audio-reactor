@@ -14,7 +14,6 @@
     "vite": "^5.0.8"
   },
   "dependencies": {
-    "three": "^0.160.0",
-    "web-audio-beat-detector": "^8.2.1"
+    "three": "^0.160.0"
   }
 }
