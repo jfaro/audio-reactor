@@ -32,6 +32,7 @@ const normalizeValue = (value: number, range: number) => {
 export default class AudioManager {
     song: { url: string; };
     isPlaying: boolean;
+    isAudioLoaded: boolean;
 
     frequencyArray?: Uint8Array;
     frequencyData: { low: number; mid: number; high: number; };
@@ -43,7 +44,6 @@ export default class AudioManager {
 
     audio?: THREE.Audio<GainNode>
     audioAnalyser?: THREE.AudioAnalyser;
-    audioContext?: AudioContext;
     bufferLength?: number;
 
     constructor() {
@@ -54,36 +54,59 @@ export default class AudioManager {
         this.highFrequency = 9000; // 2000 - 20000 Hz
 
         this.isPlaying = false;
+        this.isAudioLoaded = false;
+
         this.smoothedLowFrequency = 0;
         this.song = { url: "/audio.mp3" }
+
+        console.log("constructed audio manager")
     }
 
     async loadAudioBuffer() {
-        // Load audio file
-        const promise = new Promise<void>(async (resolve, _reject) => {
-            const audioListener = new THREE.AudioListener();
-            this.audio = new THREE.Audio(audioListener);
-
+        const promise = new Promise<void>(async (resolve, reject) => {
             const audioLoader = new THREE.AudioLoader();
-            audioLoader.load(this.song.url, (buffer) => {
-                this.audio?.setBuffer(buffer);
-                this.audio?.setLoop(true);
-                this.audio?.setVolume(0.5);
-                this.audioContext = this.audio?.context;
-                this.bufferLength = this.audioAnalyser?.data.length;
-                resolve();
-            })
 
-            this.audioAnalyser = new THREE.AudioAnalyser(this.audio, 1024);
-        })
+            const audioListener = new THREE.AudioListener();
+
+            audioLoader.load(this.song.url,
+                (buffer) => {
+                    this.audio = new THREE.Audio(audioListener);
+                    this.audio.setBuffer(buffer);
+                    this.audio.setLoop(true);
+                    this.audio.setVolume(0.5);
+
+                    this.audioAnalyser = new THREE.AudioAnalyser(this.audio, 1024);
+                    this.bufferLength = this.audioAnalyser.data.length;
+
+                    this.isAudioLoaded = true
+                    console.log("loaded audio")
+
+                    resolve();
+                },
+                (event) => {
+                    const { total, loaded } = event;
+                    console.log(`loaded ${((loaded / total) * 100).toFixed(2)}%`)
+                },
+                (error) => {
+                    console.error("failed to load audio:", error)
+                    reject()
+                }
+            );
+
+        });
+
 
         return promise
     }
 
-    play() {
+    async play() {
+        if (!this.isAudioLoaded) {
+            await this.loadAudioBuffer();
+        }
         if (this.audio) {
             this.audio.play()
             this.isPlaying = true
+            console.log("started audio")
         }
     }
 
@@ -91,6 +114,7 @@ export default class AudioManager {
         if (this.audio) {
             this.audio.pause()
             this.isPlaying = false
+            console.log("stopped audio")
         }
     }
 
@@ -99,11 +123,11 @@ export default class AudioManager {
     }
 
     analyzeFrequency() {
-        if (!this.audioContext || !this.bufferLength || !this.frequencyArray) {
+        if (!this.audio || !this.bufferLength || !this.frequencyArray) {
             return
         }
 
-        const sampleRate = this.audioContext.sampleRate;
+        const sampleRate = this.audio.context.sampleRate;
         const range = 256; // Maximum for 8-bit data.
 
         const lowFreqRangeStart = Math.floor((this.lowFrequency * this.bufferLength) / sampleRate);

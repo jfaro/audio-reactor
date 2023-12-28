@@ -10,7 +10,6 @@ class AudioVisualizer {
   scene: THREE.Scene;
 
   static objects: THREE.Object3D<THREE.Object3DEventMap>;
-  static audioManager: AudioManager;
 
   constructor() {
     this.width = window.innerWidth
@@ -40,28 +39,11 @@ class AudioVisualizer {
       app.appendChild(this.renderer.domElement);
     }
 
-    // Add cube for testing
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    const cube = new THREE.Mesh(geometry, material);
-    this.scene.add(cube);
-
-    // Create audio manager.
-    this.createAudioManager()
-
     // Handle resize 
     this.resize();
     window.addEventListener('resize', () => this.resize())
 
-    // Start update loop
-    this.update()
     console.log("visualizer constructed");
-  }
-
-  async createAudioManager() {
-    AudioVisualizer.audioManager = new AudioManager();
-    await AudioVisualizer.audioManager.loadAudioBuffer();
-    AudioVisualizer.audioManager.play()
   }
 
   resize() {
@@ -76,33 +58,38 @@ class AudioVisualizer {
     console.log(`resized to ${this.width}x${this.height}`)
   }
 
+  // Render loop.
   update() {
+    App.audioManager.update()
+    this.renderer.render(this.scene, this.camera)
+
     requestAnimationFrame(() => this.update())
-
-    // Update audio.
-    AudioVisualizer.audioManager?.update()
-
-    // Update scene.
-    if (this.renderer && this.scene && this.camera) {
-      this.renderer.render(this.scene, this.camera)
-    }
   }
 }
 
 export default class App {
-  onClick: () => void;
-  static visualizer?: AudioVisualizer;
+  static visualizer: AudioVisualizer;
+  static audioManager: AudioManager;
 
   constructor() {
-    this.onClick = () => this.start();
+    App.visualizer = new AudioVisualizer();
+    App.audioManager = new AudioManager();
+
+    // Start update loop
+    App.visualizer.update()
+
+    // Register click handler
     document.addEventListener('click', this.onClick)
+
     console.log("app constructed");
   }
 
-  start() {
-    document.removeEventListener('click', this.onClick)
-    App.visualizer = new AudioVisualizer()
-    console.log("app started");
+  async onClick() {
+    if (!App.audioManager.isPlaying) {
+      await App.audioManager.play()
+    } else {
+      App.audioManager.pause()
+    }
   }
 }
 
