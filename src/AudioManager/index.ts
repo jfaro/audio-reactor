@@ -6,12 +6,15 @@ export default class AudioManager {
     isPlaying: boolean;
     isAudioLoaded: boolean;
 
+    // Frequency amplitudes.
     frequencyArray?: Uint8Array;
+    // Average amplitude for three frequency buckets.
     frequencyData: { low: number; mid: number; high: number; };
 
     lowFrequency: number;
     midFrequency: number;
     highFrequency: number;
+
     smoothedLowFrequency: number;
 
     audio?: THREE.Audio<GainNode>
@@ -30,8 +33,6 @@ export default class AudioManager {
 
         this.smoothedLowFrequency = 0;
         this.song = { url: "/audio.mp3" }
-
-        console.log("constructed audio manager")
     }
 
     async loadAudioBuffer() {
@@ -118,10 +119,6 @@ export default class AudioManager {
     }
 
     update() {
-        if (!this.isPlaying) {
-            return
-        }
-
         this.collectAudioData();
         this.analyzeFrequency();
     }

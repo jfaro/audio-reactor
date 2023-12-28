@@ -6,10 +6,11 @@ export default class App {
   static audioManager: AudioManager;
 
   constructor() {
-    App.visualizer = new AudioVisualizer();
     App.audioManager = new AudioManager();
 
-    // Start update loop
+    // Starting update loop requires audio manager to be initialized. Maybe a 
+    // reference to existing audio source should be required as an argument.
+    App.visualizer = new AudioVisualizer();
     App.visualizer.update()
 
     // Register click handler

@@ -22,7 +22,7 @@ export default class AudioVisualizer {
         this.scene = new THREE.Scene();
 
         // Create camera
-        this.camera = new THREE.PerspectiveCamera(70, this.width / this.height, 0.1, 10000);
+        this.camera = new THREE.PerspectiveCamera(80, this.width / this.height, 0.1, 10000);
         this.camera.position.z = 2;
         this.camera.frustumCulled = false;
 
@@ -34,8 +34,9 @@ export default class AudioVisualizer {
         // Add renderer to DOM
         const app = document.getElementById("app");
         if (app) {
-            console.log("visualizer setting renderer")
             app.appendChild(this.renderer.domElement);
+        } else {
+            throw new Error("no #app element in DOM")
         }
 
         // Initialize objects container and add to scene
@@ -51,25 +52,25 @@ export default class AudioVisualizer {
             uniforms: {
                 time: { value: 0 },
                 offsetSize: { value: 0.1 },
-                size: { value: 1.5 }, // Vertex size
+                size: { value: 1 }, // Vertex size
                 frequency: { value: 1 }, // Single point rate of vibration
                 amplitude: { value: 1 }, // Distance points travel away from home
                 offsetGain: { value: 0.1 }, // Collective vibration amount
                 maxDistance: { value: 2 }, // Greater value results in larger jump
+                startColor: { value: new THREE.Color(0xee0000) },
+                endColor: { value: new THREE.Color(0x4422ff) }
             },
         });
         this.time = 0;
 
         // Create cube
-        const geometry = new THREE.BoxGeometry(1, 1, 1, 200, 20, 20)
+        const geometry = new THREE.BoxGeometry(1, 1, 1, 50, 20, 50)
         const pointsMesh = new THREE.Points(geometry, this.material);
         this.objects.add(pointsMesh)
 
         // Handle resize 
         this.resize();
         window.addEventListener('resize', () => this.resize())
-
-        console.log("visualizer constructed");
     }
 
     // Window resize handler.
@@ -88,13 +89,34 @@ export default class AudioVisualizer {
         // Update audio analysis
         App.audioManager.update()
 
+        // Use audio to affect materials
+        const ampHigh = App.audioManager.frequencyData.high;
+        const ampMid = App.audioManager.frequencyData.mid;
+        const ampLow = App.audioManager.frequencyData.low;
+
+        // Point scaling
+        const scaling = THREE.MathUtils.mapLinear(ampHigh, 0, 0.6, 2, 3)
+        this.material.uniforms.size.value = THREE.MathUtils.clamp(scaling, 2, 3);
+
+        // Warp amplitude
+        const magMid = THREE.MathUtils.mapLinear(ampMid, 0, 0.6, -0.1, 1)
+        this.material.uniforms.amplitude.value = magMid
+
+        // Vibrate gain
+        const offsetGain = ampHigh * 0.6;
+        this.material.uniforms.offsetGain.value = offsetGain;
+
+        // Time delta
+        const delta = THREE.MathUtils.mapLinear(ampLow, 0.6, 1, 0.1, 0.4);
+        const deltaClamped = THREE.MathUtils.clamp(delta, 0.1, 0.4)
+
         // Progress time
-        this.time += 0.1;
+        this.time += deltaClamped * 0.2;
         this.material.uniforms.time.value = this.time;
 
         // Rotate cube
-        this.objects.rotation.x += 0.01
-        this.objects.rotation.y += 0.01
+        this.objects.rotation.x += deltaClamped * 0.01
+        this.objects.rotation.y += deltaClamped * 0.05
 
         // Re-render
         this.renderer.render(this.scene, this.camera)
