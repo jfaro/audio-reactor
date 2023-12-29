@@ -1,7 +1,6 @@
 import * as THREE from "three"
-import App from "../main"
-import { vertex } from "../glsl/vertex";
-import { fragment } from "../glsl/fragment";
+import App from "../App"
+import { vertex, fragment } from "../Shaders";
 
 export default class AudioVisualizer {
     width: number;
@@ -64,7 +63,7 @@ export default class AudioVisualizer {
         this.time = 0;
 
         // Create cube
-        const geometry = new THREE.BoxGeometry(1, 1, 1, 50, 20, 50)
+        const geometry = new THREE.BoxGeometry(1, 1, 1, 100, 20, 100)
         const pointsMesh = new THREE.Points(geometry, this.material);
         this.objects.add(pointsMesh)
 

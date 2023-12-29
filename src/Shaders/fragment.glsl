@@ -1,4 +1,3 @@
-export const fragment = `
 varying float vDistance;
 
 uniform vec3 startColor;
@@ -20,4 +19,3 @@ void main(){
     color = mix(startColor,endColor,vDistance);
     gl_FragColor=vec4(color,circ.r * vDistance);
 }
-`

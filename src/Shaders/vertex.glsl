@@ -1,4 +1,3 @@
-export const vertex = `
 varying float vDistance;
 
 uniform float time;
@@ -130,4 +129,3 @@ void main() {
   
   vDistance = d;
 }
-`
